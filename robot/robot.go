@@ -7,16 +7,32 @@ import (
 	"net/url"
 	"strings"
 
-	"time"
-
-	CS "github.com/homike/cuttletest/cases"
+	CS "CuttleTest/cases"
 )
 
 var client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
-var (
-	TotalReqCount, TotalReqTime int64
-)
+type CreateRobotFunc func(r *RB.RobotIF, robotIndex int, stepIndex int)
+
+type RobotIF interface {
+	AddCase(c CS.CaseFunction)
+	Act(i int, m map[string]string)
+	Play(m map[string]string) error
+
+	// RobotIndex
+	GetRobotIndex() int
+	SetRobotIndex(index int)
+	// StepID
+	SetNextStepID(stepID int)
+	GetNextStepID() int
+	// StartTime
+	SetNextStartTime(nextTime int64)
+	GetNextStartTime() int64
+	// Cases
+	SetCases([]CS.Case)
+	// ERR
+	SetErr(error)
+}
 
 type Robot struct {
 	RobotIndex    int
@@ -24,31 +40,53 @@ type Robot struct {
 	Err           error
 	NextStepID    int
 	NextStartTime int64
-	//extend
-	AccountID string
-	Token     string
-	Name      string
-	Password  string
+}
+
+func (r *Robot) GetRobotIndex() int {
+	return r.RobotIndex
+}
+
+func (r *Robot) SetRobotIndex(index int) {
+	r.RobotIndex = index
+}
+
+func (r *Robot) GetNextStepID() int {
+	return r.NextStepID
+}
+
+func (r *Robot) SetNextStepID(stepID int) {
+	r.NextStepID = stepID
+}
+
+func (r *Robot) SetNextStartTime(nextTime int64) {
+	r.NextStartTime = nextTime
+}
+
+func (r *Robot) GetNextStartTime() int64 {
+	return r.NextStartTime
+}
+
+func (r *Robot) SetCases(c []CS.Case) {
+	r.Cases = c
+}
+
+func (r *Robot) SetErr(err error) {
+	r.Err = err
 }
 
 func (r *Robot) AddCase(c CS.CaseFunction) {
 	r.Cases = append(r.Cases, CS.Case{CaseFunc: c})
 }
 
-func (r *Robot) act(i int, m map[string]string) {
+func (r *Robot) Act(i int, m map[string]string) {
 	if r.Err != nil {
 		return
 	}
 
 	info := make(url.Values)
 
-	if r.AccountID != "" && r.Token != "" {
-		info.Add("account_id", r.AccountID)
-		info.Add("user_token", r.Token)
-
-		for k, v := range m {
-			info.Add(k, v)
-		}
+	for k, v := range m {
+		info.Add(k, v)
 	}
 
 	r.Cases[i].CaseFunc.Assemble(info)
@@ -58,16 +96,10 @@ func (r *Robot) act(i int, m map[string]string) {
 	}
 }
 
-func (r *Robot) Play() error {
+func (r *Robot) Play(m map[string]string) error {
 	for i, _ := range r.Cases {
 
-		t1 := time.Now().UnixNano()
-		r.act(i, nil)
-
-		t2 := time.Now().UnixNano()
-
-		TotalReqCount = TotalReqCount + 1
-		TotalReqTime = TotalReqTime + (t2 - t1)
+		r.Act(i, m)
 
 		if r.Err != nil {
 			errStr := r.Err.Error()
