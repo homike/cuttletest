@@ -1,7 +1,6 @@
 package framework
 
 import (
-	"fmt"
 	"log"
 	"runtime/debug"
 	"sync"
@@ -10,7 +9,7 @@ import (
 
 	MRand "math/rand"
 
-	RB "github.com/homike/cuttletest/robot"
+	RB "CuttleTest/robot"
 )
 
 var (
@@ -24,33 +23,24 @@ type RunCaseInfo struct {
 	StepCount int
 }
 
-type InitCase func(r *RB.Robot, stepIndex int)
+type InitCase func(r *RB.Robot, robotIndex, sceneID int)
 
 func FanInRobot(initCaseFunc InitCase) chan *RB.Robot {
 
 	curStartTime = time.Now().UnixNano() / 1000000
-	nextStartTime = curStartTime + (int64)(1000*PkgInterval)
+	nextStartTime = curStartTime + (int64)(1000*RobotCfg.PkgInterval)
 	robots := make(chan *RB.Robot, 2000)
 
-	for i := 0; i < RobotCount; i++ {
-
-		name := ""
-		if i == 0 {
-			name = RobotName
-		} else {
-			name = fmt.Sprintf("%v%v", RobotName, i)
-		}
+	for i := 0; i < RobotCfg.RobotCount; i++ {
 		go func() {
 
 			robot := &RB.Robot{
 				RobotIndex: i,
-				Name:       name,
-				Password:   "123456",
 			}
-			initCaseFunc(robot, 1)
+			initCaseFunc(robot, i, RobotCfg.SceneID)
 
 			robot.NextStepID = 0 //maRand.New(maRand.NewSource(time.Now().UnixNano())).Intn(totalStepNum[sceneId])
-			robot.NextStartTime = time.Now().UnixNano()/1000000 + (int64)(MRand.New(MRand.NewSource(time.Now().UnixNano())).Intn(1000*PkgInterval))
+			robot.NextStartTime = time.Now().UnixNano()/1000000 + (int64)(MRand.New(MRand.NewSource(time.Now().UnixNano())).Intn(1000*RobotCfg.PkgInterval))
 			robots <- robot
 		}()
 	}
@@ -60,7 +50,7 @@ func FanInRobot(initCaseFunc InitCase) chan *RB.Robot {
 
 func DoTest(robots chan *RB.Robot, runCaseArr []RunCaseInfo) {
 	MRand.Seed(int64(time.Now().Nanosecond()))
-	reqSem := make(chan struct{}, ReqCount) //限制同一时间发出的请求数
+	reqSem := make(chan struct{}, RobotCfg.ReqCount) //限制同一时间发出的请求数
 
 	var i int64
 	for r := range robots {
@@ -68,16 +58,16 @@ func DoTest(robots chan *RB.Robot, runCaseArr []RunCaseInfo) {
 		if r.NextStartTime <= (time.Now().UnixNano() / 1000000) {
 			reqSem <- struct{}{}
 			go func() {
-				if sceneID >= len(runCaseArr) {
-					log.Printf("sceneId: %v, error", sceneID)
+				if RobotCfg.SceneID >= len(runCaseArr) {
+					log.Printf("sceneId: %v, error", RobotCfg.SceneID)
 					return
 				}
 
-				runCaseInfo := runCaseArr[sceneID]
+				runCaseInfo := runCaseArr[RobotCfg.SceneID]
 				runCaseInfo.RunCase(r, r.NextStepID)
 
 				r.NextStepID = (r.NextStepID + 1) % runCaseInfo.StepCount
-				r.NextStartTime = nextStartTime + (int64)(MRand.New(MRand.NewSource(time.Now().UnixNano())).Intn(1000*PkgInterval))
+				r.NextStartTime = nextStartTime + (int64)(MRand.New(MRand.NewSource(time.Now().UnixNano())).Intn(1000*RobotCfg.PkgInterval))
 
 				if atomic.AddInt64(&i, 1)%2000 == 0 {
 					debug.FreeOSMemory()
@@ -99,10 +89,9 @@ func DoTest(robots chan *RB.Robot, runCaseArr []RunCaseInfo) {
 			lock.Lock()
 
 			curStartTime = nextStartTime
-			nextStartTime = curStartTime + (int64)(1000*PkgInterval)
+			nextStartTime = curStartTime + (int64)(1000*RobotCfg.PkgInterval)
 
 			lock.Unlock()
 		}
-
 	}
 }

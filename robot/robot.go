@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	CS "github.com/homike/cuttletest/cases"
+	"CuttleTest/mode"
 )
 
 var client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
@@ -18,21 +18,23 @@ var (
 	TotalReqCount, TotalReqTime int64
 )
 
+type UserRoboter interface {
+	ActExtraFunc() map[string]string
+}
+
 type Robot struct {
 	RobotIndex    int
-	Cases         []CS.Case
+	Cases         []mode.Case
 	Err           error
 	NextStepID    int
 	NextStartTime int64
-	//extend
-	AccountID string
-	Token     string
-	Name      string
-	Password  string
+
+	// Extra Data
+	ExtraData UserRoboter
 }
 
-func (r *Robot) AddCase(c CS.CaseFunction) {
-	r.Cases = append(r.Cases, CS.Case{CaseFunc: c})
+func (r *Robot) AddCase(c mode.CaseFunction) {
+	r.Cases = append(r.Cases, mode.Case{CaseFunc: c})
 }
 
 func (r *Robot) act(i int, m map[string]string) {
@@ -42,13 +44,22 @@ func (r *Robot) act(i int, m map[string]string) {
 
 	info := make(url.Values)
 
-	if r.AccountID != "" && r.Token != "" {
-		info.Add("account_id", r.AccountID)
-		info.Add("user_token", r.Token)
+	extraParas := r.ExtraData.ActExtraFunc()
+	// if r.AccountID != "" && r.Token != "" {
+	// 	info.Add("account_id", r.AccountID)
+	// 	info.Add("user_token", r.Token)
 
-		for k, v := range m {
-			info.Add(k, v)
-		}
+	// 	for k, v := range m {
+	// 		info.Add(k, v)
+	// 	}
+	// }
+
+	for k, v := range extraParas {
+		info.Add(k, v)
+	}
+
+	for k, v := range m {
+		info.Add(k, v)
 	}
 
 	r.Cases[i].CaseFunc.Assemble(info)

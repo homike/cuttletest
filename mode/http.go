@@ -1,4 +1,4 @@
-package cases
+package mode
 
 import (
 	"net/http"

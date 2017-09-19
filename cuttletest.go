@@ -1,7 +1,7 @@
-package cuttletest
+package CuttleTest
 
 import (
-	"github.com/homike/cuttletest/framework"
+	"CuttleTest/framework"
 )
 
 func Run(configPath string, initCaseFunc framework.InitCase, runCaseList []framework.RunCaseInfo) {
