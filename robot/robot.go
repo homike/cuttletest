@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"CuttleTest/mode"
+	"cuttletest/mode"
 )
 
 var client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}

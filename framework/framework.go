@@ -9,7 +9,7 @@ import (
 
 	MRand "math/rand"
 
-	RB "CuttleTest/robot"
+	RB "cuttletest/robot"
 )
 
 var (

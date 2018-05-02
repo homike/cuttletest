@@ -1,7 +1,7 @@
 package CuttleTest
 
 import (
-	"CuttleTest/framework"
+	"cuttletest/framework"
 )
 
 // Run Test
