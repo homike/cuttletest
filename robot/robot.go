@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"cuttletest/mode"
+	"github.com/homike/cuttletest/mode"
 )
 
 var client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}

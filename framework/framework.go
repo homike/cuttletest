@@ -9,7 +9,7 @@ import (
 
 	MRand "math/rand"
 
-	RB "cuttletest/robot"
+	RB "github.com/homike/cuttletest/robot"
 )
 
 var (
